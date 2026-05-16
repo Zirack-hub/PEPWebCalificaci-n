@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Iniciar sesión{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-dark text-white text-center py-3">
+        <h3 class="mb-0">🎮 Iniciar sesión</h3>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="id_username" class="form-label fw-semibold">Usuario</label>
+            <input type="text" name="username" id="id_username"
+                   class="form-control" placeholder="Tu nombre de usuario" autofocus required>
+          </div>
+
+          <div class="mb-3">
+            <label for="id_password" class="form-label fw-semibold">Contraseña</label>
+            <input type="password" name="password" id="id_password"
+                   class="form-control" placeholder="Tu contraseña" required>
+          </div>
+
+          {% if form.errors %}
+            <div class="alert alert-danger">
+              Usuario o contraseña incorrectos.
+            </div>
+          {% endif %}
+
+          <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-box-arrow-in-right"></i> Entrar
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer text-center py-3">
+        ¿No tienes cuenta?
+        <a href="{% url 'usuarios:registro' %}" class="text-decoration-none fw-bold">Regístrate aquí</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{{ juego.titulo }}{% endblock %}
+
+{% block contenido %}
+<div class="row">
+  <!-- Columna principal -->
+  <div class="col-lg-8">
+    <!-- Cabecera del juego -->
+    <div class="card shadow-sm mb-4">
+      {% if juego.imagen %}
+        <img src="{{ juego.imagen.url }}" class="card-img-top" alt="{{ juego.titulo }}" style="max-height:400px; object-fit:cover;">
+      {% endif %}
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            {% if juego.genero %}
+              <span class="badge bg-secondary mb-2">{{ juego.genero }}</span>
+            {% endif %}
+            <h1 class="mb-1">{{ juego.titulo }}</h1>
+            <small class="text-muted">
+              Añadido por <strong>{{ juego.autor.username }}</strong>
+              el {{ juego.fecha_creacion|date:"d/m/Y" }}
+            </small>
+          </div>
+
+          <!-- Botones editar/borrar (solo autor o staff) -->
+          {% if user == juego.autor or user.is_staff %}
+            <div class="btn-group">
+              <a href="{% url 'juegos:editar' juego.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-pencil"></i> Editar
+              </a>
+              <a href="{% url 'juegos:borrar' juego.pk %}" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash"></i> Borrar
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <hr>
+        <p class="lead">{{ juego.descripcion }}</p>
+      </div>
+    </div>
+
+    <!-- Calificaciones -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-dark text-white">
+        <h4 class="mb-0"><i class="bi bi-star-fill text-warning"></i> Calificaciones</h4>
+      </div>
+      <div class="card-body">
+        {% if not ya_califico and user.is_authenticated %}
+          <h5 class="mb-3">Tu calificación</h5>
+          <form method="POST" class="mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="calificar">
+            <div class="mb-3">
+              <label class="form-label">Puntuación</label>
+              {{ form_calificacion.puntuacion }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Reseña</label>
+              {{ form_calificacion.resena }}
+            </div>
+            <button type="submit" class="btn btn-warning">
+              <i class="bi bi-star"></i> Enviar calificación
+            </button>
+          </form>
+          <hr>
+        {% elif not user.is_authenticated %}
+          <div class="alert alert-info">
+            <a href="{% url 'usuarios:login' %}">Inicia sesión</a> para calificar este juego.
+          </div>
+        {% else %}
+          <div class="alert alert-success mb-3">
+            <i class="bi bi-check-circle"></i> Ya has calificado este juego.
+          </div>
+        {% endif %}
+
+        <!-- Lista de calificaciones -->
+        {% if calificaciones %}
+          {% for cal in calificaciones %}
+            <div class="border rounded p-3 mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <strong>{{ cal.usuario.username }}</strong>
+                  <span class="badge bg-warning text-dark ms-2">⭐ {{ cal.puntuacion }}/10</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <small class="text-muted">{{ cal.fecha_creacion|date:"d/m/Y" }}</small>
+                  {% if user == cal.usuario or user.is_staff %}
+                    <form method="POST" action="{% url 'juegos:borrar_calificacion' cal.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-link btn-sm text-danger p-0"
+                              onclick="return confirm('¿Eliminar esta calificación?')">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+              <p class="mb-0">{{ cal.resena }}</p>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">Todavía no hay calificaciones. ¡Sé el primero!</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Comentarios -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-dark text-white">
+        <h4 class="mb-0"><i class="bi bi-chat-left-text"></i> Comentarios ({{ comentarios.count }})</h4>
+      </div>
+      <div class="card-body">
+        {% if user.is_authenticated %}
+          <form method="POST" class="mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="comentar">
+            <div class="mb-2">
+              {{ form_comentario.texto }}
+            </div>
+            <button type="submit" class="btn btn-dark btn-sm">
+              <i class="bi bi-send"></i> Comentar
+            </button>
+          </form>
+          <hr>
+        {% else %}
+          <div class="alert alert-info mb-3">
+            <a href="{% url 'usuarios:login' %}">Inicia sesión</a> para dejar un comentario.
+          </div>
+        {% endif %}
+
+        {% if comentarios %}
+          {% for comentario in comentarios %}
+            <div class="d-flex gap-3 mb-3">
+              <div class="flex-shrink-0">
+                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                     style="width:40px;height:40px;font-weight:bold;">
+                  {{ comentario.autor.username|first|upper }}
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between">
+                  <strong>{{ comentario.autor.username }}</strong>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted">{{ comentario.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                    {% if user == comentario.autor or user.is_staff %}
+                      <form method="POST" action="{% url 'juegos:borrar_comentario' comentario.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link btn-sm text-danger p-0"
+                                onclick="return confirm('¿Eliminar comentario?')">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+                <p class="mb-0 mt-1">{{ comentario.texto }}</p>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">No hay comentarios aún. ¡Empieza la conversación!</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <!-- Estadísticas -->
+    <div class="card shadow-sm mb-4 text-center">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">📊 Estadísticas</h5>
+      </div>
+      <div class="card-body">
+        {% with media=juego.media_calificacion %}
+          {% if media %}
+            <div class="display-4 fw-bold text-warning">{{ media }}</div>
+            <div class="text-muted mb-2">sobre 10</div>
+            <div class="fs-5">⭐⭐⭐⭐⭐</div>
+          {% else %}
+            <div class="display-4 text-muted">—</div>
+            <div class="text-muted">Sin puntuación</div>
+          {% endif %}
+        {% endwith %}
+        <hr>
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="fs-3 fw-bold">{{ juego.num_calificaciones }}</div>
+            <small class="text-muted">Calificaciones</small>
+          </div>
+          <div class="col-6">
+            <div class="fs-3 fw-bold">{{ comentarios.count }}</div>
+            <small class="text-muted">Comentarios</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info del juego -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">ℹ️ Información</h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Género</span>
+          <strong>{{ juego.genero|default:"—" }}</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Añadido por</span>
+          <strong>{{ juego.autor.username }}</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Fecha</span>
+          <strong>{{ juego.fecha_creacion|date:"d/m/Y" }}</strong>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Volver al catálogo -->
+    <a href="{% url 'juegos:lista' %}" class="btn btn-outline-dark w-100">
+      <i class="bi bi-arrow-left"></i> Volver al catálogo
+    </a>
+  </div>
+</div>
+{% endblock %}
